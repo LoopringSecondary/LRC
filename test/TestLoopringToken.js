@@ -101,140 +101,267 @@ contract('LoopringToken', function(accounts) {
     });
   });
 
-  // it("should be able to compute LRC token amount correctly", function() {
-  //   console.log("\n" + "-".repeat(100) + "\n");
-  //   var loopring;
-  //   var target;
-  //   return LoopringToken.deployed().then(function(instance) {
-  //     loopring = instance;
-  //     return loopring.target.call({from: accounts[1]});
-  //   }).then(function(t){
-  //     target = t;
-  //     return web3.eth.getBalance(target);
-  //   }).then(function(balance) {
-  //     console.log("target balance at begin:", balance.toNumber());
-  //     return loopring.computeTokenAmount(web3.toWei(1));
-  //   }).then(function(amount1) {
-  //     console.log("amount1:", amount1);
-  //     assert.equal(amount1.toNumber(), 6000e+18 * 1, "token amount not compute correctly in phase 1.");
-  //     return web3.eth.sendTransaction({from: accounts[1], to: target, value: ethGoalPerPhase });
-  //   }).then(function(tx) {
-  //     console.log("txHash 1: ", tx);
-  //     return loopring.computeTokenAmount(web3.toWei(2.19));
-  //   }).then(function(amount2){
-  //     console.log("amount2:", amount2);
-  //     assert.equal(amount2.toNumber(), 2.19e+18 * 5750, "token amount not compute correctly in phase 2.");
-  //     return web3.eth.sendTransaction({from: accounts[1], to: target, value: ethGoalPerPhase });
-  //   }).then(function(tx) {
-  //     console.log("txHash 2: ", tx);
-  //     return loopring.computeTokenAmount(web3.toWei(3.04598));
-  //   }).then(function(amount3){
-  //     console.log("amount3:", amount3);
-  //     assert.equal(amount3.toNumber(), 3.04598e+18 * 5500, "token amount not compute correctly in phase 3.");
-  //     return web3.eth.sendTransaction({from: accounts[1], to: target, value: ethGoalPerPhase });
-  //   }).then(function(tx) {
-  //     console.log("txHash 3: ", tx);
-  //     return loopring.computeTokenAmount(web3.toWei(1237.472));
-  //   }).then(function(amount4){
-  //     console.log("amount4:", amount4);
-  //     assert.equal(amount4.toNumber(), 1237.472e+18 * 5250, "token amount not compute correctly in phase 4.");
-  //     return web3.eth.sendTransaction({from: accounts[1], to: target, value: ethGoalPerPhase });
-  //   }).then(function(tx) {
-  //     console.log("txHash 4: ", tx);
-  //     return loopring.computeTokenAmount(web3.toWei(0.01));
-  //   }).then(function(amount5){
-  //     console.log("amount5:", amount5);
-  //     assert.equal(amount5.toNumber(), 0.01e+18 * 5000, "token amount not compute correctly in phase 5.");
-  //     return web3.eth.sendTransaction({from: accounts[1], to: target, value: ethGoalPerPhase * 3.1 });
-  //   }).then(function(tx) {
-  //     console.log("txHash 5: ", tx);
-  //     return loopring.computeTokenAmount(web3.toWei(1));
-  //   }).then(function(amount6){
-  //     console.log("amount6:", amount6);
-  //     assert.equal(amount6.toNumber(), 1e+18 * 5000, "token amount not compute correctly in phase 5.");
-  //   });
+  it("should be able to compute LRC token amount correctly", function() {
+    console.log("\n" + "-".repeat(100) + "\n");
+    var loopring;
+    var target;
+    var ethAmount;
+    var tokenBalance;
+    return LoopringToken.deployed().then(function(instance) {
+      loopring = instance;
+      return loopring.target.call({from: accounts[1]});
+    }).then(function(t){
+      target = t;
+      return loopring.balanceOf(accounts[1], {from: accounts[1]});
+    }).then(function(balance) {
+      tokenBalance = balance.toNumber();
+      ethAmount = Math.random() * 100;
+      for (var i = 0; i < 8; i ++) {
+        web3.eth.sendTransaction({from: accounts[2], to: loopring.address, value: web3.toWei(1), gas: 500000 });
+      }
+      return web3.eth.sendTransaction({from: accounts[1], to: loopring.address, value: web3.toWei(ethAmount), gas: 500000 });
+    }).then(function(tx) {
+      console.log("tx:", tx);
+      return loopring.balanceOf(accounts[1], {from: accounts[1]});
+    }).then(function(amount1) {
+      console.log("amount1:", amount1);
+      var expectValue = web3.toWei(ethAmount) * 5000;
+      expectValue = expectValue + expectValue * 20 / 100;
+      expectValue = expectValue.toPrecision(8);
+      var tokenIssued = amount1.toNumber() - tokenBalance;
+      tokenIssued = tokenIssued.toPrecision(8);
+      assert.equal(tokenIssued, expectValue, "token amount not compute correctly in phase 1.");
+      tokenBalance = amount1.toNumber();
+      ethAmount = Math.random() * 100;
+      return web3.eth.sendTransaction({from: accounts[1], to: loopring.address, value: web3.toWei(ethAmount), gas: 500000 });
+    }).then(function(tx) {
+      console.log("tx:", tx);
+      return loopring.balanceOf(accounts[1], {from: accounts[1]});
+    }).then(function(amount2){
+      console.log("amount2:", amount2);
+      var expectValue = web3.toWei(ethAmount) * 5000;
+      expectValue = expectValue + expectValue * 16 / 100;
+      expectValue = expectValue.toPrecision(8);
+      var tokenIssued = amount2.toNumber() - tokenBalance;
+      tokenIssued = tokenIssued.toPrecision(8);
+      assert.equal(tokenIssued, expectValue, "token amount not compute correctly in phase 1.");
 
-  // });
+      tokenBalance = amount2.toNumber();
+      for (var i = 0; i < 9; i ++) {
+        web3.eth.sendTransaction({from: accounts[2], to: loopring.address, value: web3.toWei(1), gas: 500000 });
+      }
+      ethAmount = Math.random() * 100;
+      return web3.eth.sendTransaction({from: accounts[1], to: loopring.address, value: web3.toWei(ethAmount), gas: 500000 });
+    }).then(function(tx) {
+      console.log("tx:", tx);
+      return loopring.balanceOf(accounts[1], {from: accounts[1]});
+    }).then(function(amount3){
+      console.log("amount3:", amount3);
+      var expectValue = web3.toWei(ethAmount) * 5000;
+      expectValue = expectValue + expectValue * 14 / 100;
+      expectValue = expectValue.toPrecision(8);
+      var tokenIssued = amount3.toNumber() - tokenBalance;
+      tokenIssued = tokenIssued.toPrecision(8);
+      assert.equal(tokenIssued, expectValue, "token amount not compute correctly in phase 1.");
+
+      tokenBalance = amount3.toNumber();
+      for (var i = 0; i < 9; i ++) {
+        web3.eth.sendTransaction({from: accounts[2], to: loopring.address, value: web3.toWei(1), gas: 500000 });
+      }
+      ethAmount = Math.random() * 100;
+      return web3.eth.sendTransaction({from: accounts[1], to: loopring.address, value: web3.toWei(ethAmount), gas: 500000 });
+    }).then(function(tx) {
+      console.log("tx:", tx);
+      return loopring.balanceOf(accounts[1], {from: accounts[1]});
+    }).then(function(amount4){
+      console.log("amount4:", amount4);
+      var expectValue = web3.toWei(ethAmount) * 5000;
+      expectValue = expectValue + expectValue * 12 / 100;
+
+      expectValue = expectValue.toPrecision(8);
+      var tokenIssued = amount4.toNumber() - tokenBalance;
+      tokenIssued = tokenIssued.toPrecision(8);
+      assert.equal(tokenIssued, expectValue, "token amount not compute correctly in phase 1.");
+
+      tokenBalance = amount4.toNumber();
+      for (var i = 0; i < 9; i ++) {
+        web3.eth.sendTransaction({from: accounts[2], to: loopring.address, value: web3.toWei(1), gas: 500000 });
+      }
+      ethAmount = Math.random() * 100;
+      return web3.eth.sendTransaction({from: accounts[1], to: loopring.address, value: web3.toWei(ethAmount), gas: 500000 });
+    }).then(function(tx) {
+      console.log("tx:", tx);
+      return loopring.balanceOf(accounts[1], {from: accounts[1]});
+    }).then(function(amount5){
+      console.log("amount5:", amount5);
+      var expectValue = web3.toWei(ethAmount) * 5000;
+      expectValue = expectValue + expectValue * 10 / 100;
+
+      expectValue = expectValue.toPrecision(8);
+      var tokenIssued = amount5.toNumber() - tokenBalance;
+      tokenIssued = tokenIssued.toPrecision(8);
+      assert.equal(tokenIssued, expectValue, "token amount not compute correctly in phase 1.");
+
+      tokenBalance = amount5.toNumber();
+      for (var i = 0; i < 9; i ++) {
+        web3.eth.sendTransaction({from: accounts[2], to: loopring.address, value: web3.toWei(1), gas: 500000 });
+      }
+      ethAmount = Math.random() * 100;
+      return web3.eth.sendTransaction({from: accounts[1], to: loopring.address, value: web3.toWei(ethAmount), gas: 500000 });
+    }).then(function(tx) {
+      console.log("tx:", tx);
+      return loopring.balanceOf(accounts[1], {from: accounts[1]});
+    }).then(function(amount6){
+      console.log("amount6:", amount6);
+      var expectValue = web3.toWei(ethAmount) * 5000;
+      expectValue = expectValue + expectValue * 8 / 100;
+
+      expectValue = expectValue.toPrecision(8);
+      var tokenIssued = amount6.toNumber() - tokenBalance;
+      tokenIssued = tokenIssued.toPrecision(8);
+      assert.equal(tokenIssued, expectValue, "token amount not compute correctly in phase 1.");
+
+      tokenBalance = amount6.toNumber();
+      for (var i = 0; i < 9; i ++) {
+        web3.eth.sendTransaction({from: accounts[2], to: loopring.address, value: web3.toWei(1), gas: 500000 });
+      }
+      ethAmount = Math.random() * 100;
+      return web3.eth.sendTransaction({from: accounts[1], to: loopring.address, value: web3.toWei(ethAmount), gas: 500000 });
+    }).then(function(tx) {
+      console.log("tx:", tx);
+      return loopring.balanceOf(accounts[1], {from: accounts[1]});
+    }).then(function(amount7){
+      console.log("amount7:", amount7);
+      var expectValue = web3.toWei(ethAmount) * 5000;
+      expectValue = expectValue + expectValue * 6 / 100;
+
+      expectValue = expectValue.toPrecision(8);
+      var tokenIssued = amount7.toNumber() - tokenBalance;
+      tokenIssued = tokenIssued.toPrecision(8);
+      assert.equal(tokenIssued, expectValue, "token amount not compute correctly in phase 1.");
+
+      tokenBalance = amount7.toNumber();
+      for (var i = 0; i < 9; i ++) {
+        web3.eth.sendTransaction({from: accounts[2], to: loopring.address, value: web3.toWei(1), gas: 500000 });
+      }
+      ethAmount = Math.random() * 100;
+      return web3.eth.sendTransaction({from: accounts[1], to: loopring.address, value: web3.toWei(ethAmount), gas: 500000 });
+    }).then(function(tx) {
+      console.log("tx:", tx);
+      return loopring.balanceOf(accounts[1], {from: accounts[1]});
+    }).then(function(amount8){
+      console.log("amount8:", amount8);
+      var expectValue = web3.toWei(ethAmount) * 5000;
+      expectValue = expectValue + expectValue * 4 / 100;
+
+      expectValue = expectValue.toPrecision(8);
+      var tokenIssued = amount8.toNumber() - tokenBalance;
+      tokenIssued = tokenIssued.toPrecision(8);
+      assert.equal(tokenIssued, expectValue, "token amount not compute correctly in phase 1.");
+
+      tokenBalance = amount8.toNumber();
+      for (var i = 0; i < 9; i ++) {
+        web3.eth.sendTransaction({from: accounts[2], to: loopring.address, value: web3.toWei(1), gas: 500000 });
+      }
+      ethAmount = Math.random() * 100;
+      return web3.eth.sendTransaction({from: accounts[1], to: loopring.address, value: web3.toWei(ethAmount), gas: 500000 });
+    }).then(function(tx) {
+      console.log("tx:", tx);
+      return loopring.balanceOf(accounts[1], {from: accounts[1]});
+    }).then(function(amount9){
+      console.log("amount9:", amount9);
+      var expectValue = web3.toWei(ethAmount) * 5000;
+      expectValue = expectValue + expectValue * 2 / 100;
+
+      expectValue = expectValue.toPrecision(8);
+      var tokenIssued = amount9.toNumber() - tokenBalance;
+      tokenIssued = tokenIssued.toPrecision(8);
+      assert.equal(tokenIssued, expectValue, "token amount not compute correctly in phase 1.");
+
+      tokenBalance = amount9.toNumber();
+      for (var i = 0; i < 9; i ++) {
+        web3.eth.sendTransaction({from: accounts[2], to: loopring.address, value: web3.toWei(1), gas: 500000 });
+      }
+      ethAmount = Math.random() * 100 + 50000;
+      return web3.eth.sendTransaction({from: accounts[1], to: loopring.address, value: web3.toWei(ethAmount), gas: 500000 });
+    }).then(function(tx) {
+      console.log("tx:", tx);
+      return loopring.balanceOf(accounts[1], {from: accounts[1]});
+    }).then(function(amount10){
+      console.log("amount10:", amount10);
+      var expectValue = web3.toWei(ethAmount) * 5000;
+
+      expectValue = expectValue.toPrecision(8);
+      var tokenIssued = amount10.toNumber() - tokenBalance;
+      tokenIssued = tokenIssued.toPrecision(8);
+      assert.equal(tokenIssued, expectValue, "token amount not compute correctly in phase 1.");
+
+      tokenBalance = amount10.toNumber();
+      ethAmount = Math.random() * 100 ;
+
+      for (var i = 0; i < 10; i ++) {
+        web3.eth.sendTransaction({from: accounts[2], to: loopring.address, value: web3.toWei(1), gas: 500000 });
+      }
+      return loopring.saleEnded();
+    }).then(function(isEnd) {
+      console.log("isEnd:", isEnd);
+      assert(isEnd, true, "sale not end after 10 pahses.");
+    });
+
+  });
+
+  it("should be able to issue unsoled tokens correctly.", function() {
+    console.log("\n" + "-".repeat(100) + "\n");
+    var loopring;
+    var target;
+    var totalSold;
+    var totalEthReceived;
+    return LoopringToken.deployed().then(function(instance) {
+      loopring = instance;
+      return loopring.target.call();
+    }).then(function(t){
+      target = t;
+      return loopring.totalSupply.call({from: target});
+    }).then(function(totalSupply) {
+      totalSold = totalSupply.toNumber();
+      console.log("totalSold:", totalSold);
+      return loopring.totalEthReceived.call({from: target});
+    }).then(function(totalEth) {
+      totalEthReceived = totalEth.toNumber();
+      console.log("totalEthReceived: ", totalEthReceived);
+      return loopring.close({from: target});
+    }).then(function(tx) {
+      console.log("tx: ", tx);
+      return loopring.balanceOf(target, {from: accounts[1]});
+    }).then(function(bal) {
+      var ownerTokenBalance = bal.toNumber();
+      var level = (totalEthReceived - web3.toWei(50000)) / web3.toWei(10000);
+      var unsoldRatioInThousand = 675 - 25 * level;
+      var expectedVal = totalSold * unsoldRatioInThousand / (1000 - unsoldRatioInThousand);
+      console.log("ownerTokenBalance: ", ownerTokenBalance);
+      assert(ownerTokenBalance, expectedVal, "wrong number for unsold token issue.");
+    });
+  });
+
+  it("should be able to send eth to target.", function() {
+    console.log("\n" + "-".repeat(100) + "\n");
+    var loopring;
+    var target;
+    var totalEthReceived;
+    return LoopringToken.deployed().then(function(instance) {
+      loopring = instance;
+      return loopring.target.call();
+    }).then(function(t){
+      target = t;
+      return loopring.totalEthReceived.call({from: target});
+    }).then(function(totalEth) {
+      totalEthReceived = totalEth.toNumber();
+      console.log("totalEthReceived: ", totalEthReceived);
+      return web3.eth.getBalance(target);
+    }).then(function(ethBal) {
+      console.log("ethBal: ", ethBal);
+    });
+
+  });
 
 });
-
-// contract('LoopringToken', function(accounts) {
-//   it("should be able to compute LRC token amount correctly when across phases", function() {
-//     console.log("\n" + "-".repeat(100) + "\n");
-//     var loopring;
-//     var target;
-//     var targetBalance;
-//     var targetInitBalance;
-//     var ethGoalPerPhase;
-//     return LoopringToken.deployed().then(function(instance) {
-//       loopring = instance;
-//       return loopring.target.call({from: accounts[1]});
-//     }).then(function(t){
-//       target = t;
-//       return loopring.ethGoalPerPhase.call({from: accounts[1]});
-//     }).then(function(goal){
-//       ethGoalPerPhase = goal;
-//       console.log("ethGoalPerPhase:", ethGoalPerPhase);
-//       return web3.eth.getBalance(target);
-//     }).then(function(balance) {
-//       console.log("target balance at begin:", balance.toNumber());
-//       targetBalance = balance.toNumber();
-//       return web3.eth.sendTransaction({from: accounts[1], to: target, value: ethGoalPerPhase - targetBalance - web3.toWei(1) });
-//     }).then(function(tx) {
-//       console.log("txHash 1: ", tx);
-//       return loopring.computeTokenAmount(web3.toWei(12.19), {from: accounts[1]});
-//     }).then(function(amount1){
-//       console.log("amount1:", amount1);
-//       assert.equal(amount1.toNumber(), (1e+18) * 6000 + 11.19e+18 * 5750, "token amount not computed correctly in phase 1 across phase 2.");
-//     });
-
-//   });
-// });
-
-// contract('LoopringToken', function(accounts) {
-//   it("should be able to compute LRC token amount correctly for owner after sale.", function() {
-//     console.log("\n" + "-".repeat(100) + "\n");
-//     var loopring;
-//     var target;
-//     var targetBalance;
-//     var targetInitBalance;
-//     var ethGoalPerPhase;
-//     var totalEthAmountAchieved;
-//     return LoopringToken.deployed().then(function(instance) {
-//       loopring = instance;
-//       return loopring.target.call({from: accounts[1]});
-//     }).then(function(t){
-//       target = t;
-//       return loopring.ethGoalPerPhase.call({from: accounts[1]});
-//     }).then(function(goal){
-//       ethGoalPerPhase = goal;
-//       console.log("ethGoalPerPhase:", ethGoalPerPhase);
-//       return web3.eth.getBalance(target);
-//     }).then(function(balance) {
-//       console.log("target balance at begin:", balance.toNumber());
-//       targetBalance = balance.toNumber();
-//       totalEthAmountAchieved = 50000 + Math.random() * 10000;
-//       console.log("totalEthAmountAchieved: ", totalEthAmountAchieved);
-//       return web3.eth.sendTransaction({from: accounts[1], to: target, value: web3.toWei(totalEthAmountAchieved) - targetBalance });
-//     }).then(function(tx) {
-//       console.log("txHash 1: ", tx);
-//       return loopring.tokenAmountForOwner({from: accounts[1]});
-//     }).then(function(amount1){
-//       console.log("amount1:", amount1);
-//       var tokenSaled = 20000 * 6000 + 20000 * 5750 + (totalEthAmountAchieved - 40000) * 5500;
-//       console.log("tokenSaled:", tokenSaled);
-//       assert.equal(amount1.toNumber(), web3.toWei(tokenSaled) * (60.0/40) , "token amount not computed correctly for owner after sale.");
-//       totalEthAmountAchieved += 10000;
-//       return web3.eth.sendTransaction({from: accounts[1], to: target, value: web3.toWei(10000) });
-//     }).then(function(tx) {
-//       console.log("txHash 1: ", tx);
-//       return loopring.tokenAmountForOwner({from: accounts[1]});
-//     }).then(function(amount1){
-//       console.log("amount1:", amount1);
-//       var tokenSaled = 20000 * 6000 + 20000 * 5750 + (totalEthAmountAchieved - 40000) * 5500;
-//       console.log("tokenSaled:", tokenSaled);
-//       assert.equal(amount1.toNumber(), web3.toWei(tokenSaled) * (60.0/40) , "token amount not computed correctly for owner after sale.");
-//     });
-
-//   });
-// });
