@@ -53,7 +53,7 @@ contract LoopringToken is StandardToken {
     /// Each phase contains exactly 15250 Ethereum blocks, which is roughly 3 days,
     /// which makes this 10-phase sale period roughly 30 days.
     /// See https://www.ethereum.org/crowdsale#scheduling-a-call
-    uint16 public constant BLOCKS_PER_PHASE = 10;
+    uint16 public constant BLOCKS_PER_PHASE = 30;
 
     /// This is where we hold ETH during this token sale. We will not transfer any Ether
     /// out of this address before we invocate the `close` function to finalize the sale. 
