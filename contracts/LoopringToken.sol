@@ -19,11 +19,13 @@ pragma solidity ^0.4.11;
 
 import "./StandardToken.sol";
 
+
 /// @title Loopring Protocol Token.
 /// For more information about this token sale, please visit https://loopring.org
-/// @author Kongliang Zhong - <kongliang@loopring.org>, Daniel Wang - <daniel@loopring.org>.
+/// @author:
+///     Kongliang Zhong - <kongliang@loopring.org>
+///     Daniel Wang - <daniel@loopring.org>
 contract LoopringToken is StandardToken {
-
     string public constant NAME = "LoopringCoin";
     string public constant SYMBOL = "LRC";
     uint public constant DECIMALS = 18;
@@ -31,7 +33,7 @@ contract LoopringToken is StandardToken {
     /// During token sale, we use one consistent price: 5000 LRC/ETH.
     /// We split the entire token sale period into 10 phases, each
     /// phase has a different bonus setting as specified in `bonusPercentages`.
-    /// The real price for phase i is `(1 + bonusPercentages[i]/100.0) * 5000 LRC/ETH`.
+    /// The real price for phase i is `(1 + bonusPercentages[i]/100.0) * BASE_RATE`.
     /// The first phase or early-bird phase has a much higher bonus.
     uint8[10] public bonusPercentages = [
         20,
@@ -71,19 +73,22 @@ contract LoopringToken is StandardToken {
     bool public unsoldTokenIssued = false;
 
     /// Minimum amount of funds to be raised for the sale to succeed. 
-    uint256 public constant goal = 0.01 ether;
+    uint256 public constant GOAL = 0.01 ether;
 
     /// Maximum amount of fund to be raised, the sale ends on reaching this amount.
-    uint256 public constant hardCap = 0.1 ether;
+    uint256 public constant HARD_CAP = 0.1 ether;
 
     /// Maximum unsold ratio, this is hit when the mininum level of amount of fund is raised.
-    uint public constant maxUnsoldRatio = 675;
+    uint public constant MAX_UNSOLD_RATIO = 675; // 67.5%
 
     /// Base exchange rate is set to 1 ETH = 5000 LRC.
-    uint256 public constant baseExchangeRate = 5000;
+    uint256 public constant BASE_RATE = 5000;
 
     /// A simple stat for emitting events.
     uint public totalEthReceived = 0;
+
+    /// Issue event index starting from 0.
+    uint public issueIndex = 0;
 
     /* 
      * EVENTS
@@ -103,7 +108,7 @@ contract LoopringToken is StandardToken {
     event InvalidState(bytes msg);
 
     /// Emitted for each sucuessful token purchase.
-    event Issue(address addr, uint ethAmount, uint tokenAmount);
+    event Issue(uint issueIndex, address addr, uint ethAmount, uint tokenAmount);
 
     /// Emitted if the token sale succeeded.
     event SaleSucceeded();
@@ -120,41 +125,42 @@ contract LoopringToken is StandardToken {
     modifier onlyOwner {
         if (target == msg.sender) {
             _;
-        }
-        else
+        } else {
             InvalidCaller(msg.sender);
+        }
     }
 
     modifier beforeStart {
         if (!saleStarted()) {
             _;
-        }
-        else
+        } else {
             InvalidState("Sale has not started yet");
+        }
     }
 
     modifier inProgress {
         if (saleStarted() && !saleEnded()) {
             _;
-        }
-        else
+        } else {
             InvalidState("Sale is not in progress");
+        }
     }
 
     modifier afterEnd {
         if (saleEnded()) {
             _;
-        }
-        else
+        } else {
             InvalidState("Sale is not ended yet");
+        }
     }
 
     /**
      * CONSTRUCTOR 
      * 
      * @dev Initialize the Loopring Token
-     * @param _target the escrow account address, all ethers will
+     * @param _target The escrow account address, all ethers will
      * be sent to this address.
+     * This address will be : 0x00073F7155459C9205010Cb3453a0f392a0C3210
      */
     function LoopringToken(address _target) {
         target = _target;
@@ -178,7 +184,7 @@ contract LoopringToken is StandardToken {
 
     /// @dev Triggers unsold tokens to be issued to `target` address.
     function close() public onlyOwner afterEnd {
-        if (totalEthReceived < goal) {
+        if (totalEthReceived < GOAL) {
             SaleFailed();
         } else {
             issueUnsoldToken();
@@ -200,7 +206,12 @@ contract LoopringToken is StandardToken {
         totalSupply = totalSupply.add(tokens);
         balances[recipient] = balances[recipient].add(tokens);
 
-        Issue(recipient, msg.value, tokens);
+        Issue(
+            issueIndex++,
+            recipient,
+            msg.value,
+            tokens
+        );
 
         if (!target.send(msg.value)) {
             throw;
@@ -222,7 +233,7 @@ contract LoopringToken is StandardToken {
             phase = bonusPercentages.length - 1;
         }
 
-        uint tokenBase = ethAmount.mul(baseExchangeRate);
+        uint tokenBase = ethAmount.mul(BASE_RATE);
         uint tokenBonus = tokenBase.mul(bonusPercentages[phase]).div(100);
 
         tokens = tokenBase.add(tokenBonus);
@@ -256,14 +267,14 @@ contract LoopringToken is StandardToken {
             InvalidState("Unsold token has been issued already");
         } else {
             // Add another safe guard 
-            require(totalEthReceived >= goal);
+            require(totalEthReceived >= GOAL);
 
-            uint level = totalEthReceived.sub(goal).div(10000 ether);
+            uint level = totalEthReceived.sub(GOAL).div(10000 ether);
             if (level > 7) {
                 level = 7;
             }
 
-            uint unsoldRatioInThousand = maxUnsoldRatio - 25 * level;
+            uint unsoldRatioInThousand = MAX_UNSOLD_RATIO - 25 * level;
 
 
             // Calculate the `unsoldToken` to be issued, the amount of `unsoldToken`
@@ -279,7 +290,13 @@ contract LoopringToken is StandardToken {
             // Issue `unsoldToken` to the target account.
             balances[target] = balances[target].add(unsoldToken);
 
-            Issue(target, 0, unsoldToken);
+            Issue(
+                issueIndex++,
+                target,
+                0,
+                unsoldToken
+            );
+            
             unsoldTokenIssued = true;
         }
     }
@@ -301,7 +318,7 @@ contract LoopringToken is StandardToken {
 
     /// @return true if the hard cap is reached.
     function hardCapReached() constant returns (bool) {
-        return totalEthReceived >= hardCap;
+        return totalEthReceived >= HARD_CAP;
     }
 }
 
