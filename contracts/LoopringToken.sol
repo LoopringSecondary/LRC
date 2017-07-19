@@ -22,9 +22,7 @@ import "./StandardToken.sol";
 
 /// @title Loopring Protocol Token.
 /// For more information about this token sale, please visit https://loopring.org
-/// @author:
-///     Kongliang Zhong - <kongliang@loopring.org>
-///     Daniel Wang - <daniel@loopring.org>
+/// @author Kongliang Zhong - <kongliang@loopring.org> Daniel Wang - <daniel@loopring.org>
 contract LoopringToken is StandardToken {
     string public constant NAME = "LoopringCoin";
     string public constant SYMBOL = "LRC";
@@ -53,7 +51,7 @@ contract LoopringToken is StandardToken {
     /// Each phase contains exactly 15250 Ethereum blocks, which is roughly 3 days,
     /// which makes this 10-phase sale period roughly 30 days.
     /// See https://www.ethereum.org/crowdsale#scheduling-a-call
-    uint16 public constant BLOCKS_PER_PHASE = 30;
+    uint16 public constant BLOCKS_PER_PHASE = 20;
 
     /// This is where we hold ETH during this token sale. We will not transfer any Ether
     /// out of this address before we invocate the `close` function to finalize the sale. 
@@ -127,6 +125,7 @@ contract LoopringToken is StandardToken {
             _;
         } else {
             InvalidCaller(msg.sender);
+            throw;
         }
     }
 
@@ -135,6 +134,7 @@ contract LoopringToken is StandardToken {
             _;
         } else {
             InvalidState("Sale has not started yet");
+            throw;
         }
     }
 
@@ -143,6 +143,7 @@ contract LoopringToken is StandardToken {
             _;
         } else {
             InvalidState("Sale is not in progress");
+            throw;
         }
     }
 
@@ -151,6 +152,7 @@ contract LoopringToken is StandardToken {
             _;
         } else {
             InvalidState("Sale is not ended yet");
+            throw;
         }
     }
 
@@ -205,7 +207,7 @@ contract LoopringToken is StandardToken {
 
     /// @dev Issue token based on Ether received.
     /// @param recipient Address that newly issued token will be sent to.
-    function issueToken(address recipient) payable inProgress {
+    function issueToken(address recipient) payable internal inProgress {
         uint tokens = computeTokenAmount(msg.value);
         totalEthReceived = totalEthReceived.add(msg.value);
         totalSupply = totalSupply.add(tokens);
